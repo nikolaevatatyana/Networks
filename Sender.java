@@ -1,34 +1,40 @@
 package ru.nsu.ccfit.nikolaeva.copydetection;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 
-public class Sender extends Thread{
-    private MulticastSocket socket;
-    private DatagramPacket packet;
-    private int sleepTimeMs;
+public class Sender {
+private DatagramSocket socket;
+private InetAddress group;
+private byte[]buf;
 
-    public Sender(String groupIP, int port, String message, int sleepTimeMs) throws IOException {
-        // initializing members
-        socket = new MulticastSocket();
-        packet = new DatagramPacket(message.getBytes(), message.length(), InetAddress.getByName(groupIP), port);
-        this.sleepTimeMs = sleepTimeMs;
-    }
+long start;
+long prevTime;
+long deltaTime = 0;
+long delay = 3000;
 
-    @Override
-    public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
-            // while our thread is not interrupted doing some work
-            try {
-                // sending packet with message to our group-mates
-                socket.send(packet);
-                // waiting sleepTimeMs milliseconds
-                Thread.sleep(sleepTimeMs);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+public Sender(String multicastMessage) throws SocketException, UnknownHostException {
+socket = new DatagramSocket();
+group = InetAddress.getByName("230.0.0.0");
+
+buf = multicastMessage.getBytes();
+
+start = System.currentTimeMillis();
+prevTime = System.currentTimeMillis();
+}
+
+public void close () {
+socket.close();
+}
+
+public void iteration() throws IOException {
+deltaTime = System.currentTimeMillis() - prevTime;
+prevTime = System.currentTimeMillis();
+
+if((delay -= deltaTime) < 0) {
+delay = 3000;
+DatagramPacket packet = new DatagramPacket(buf, buf.length, group, 4446);
+socket.send(packet);
+}
+}
 }
